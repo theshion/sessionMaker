@@ -1,6 +1,5 @@
 from pyrogram import Client, filters
 from pyrogram.types import CallbackQuery
-
 from pyrogram.errors.exceptions import bad_request_400
 from pyrogram.errors import (
     FloodWait,
@@ -18,12 +17,13 @@ async def pyroCreateSession(api_id: int, api_hash: str):
     return Client(":memory:", api_id=int(api_id), api_hash=str(api_hash)) 
 
 @sessionCli.on_callback_query(filters.create(lambda _, __, query: 'sele_pyrogram' in query.data))
-async def pyroGen(sessionCli, callback_data):
-    user_id = callback_data.from_user.id
-    
+async def pyroGen(sessionCli, callback_query: CallbackQuery):
+    user_id = callback_query.from_user.id
+
+    # Use callback_query.message.id instead of callback_data.message.message_id
     await sessionCli.delete_messages(
         user_id,
-        callback_data.message.message_id
+        callback_query.message.id  # Corrected this line
     )
 
     # Init the process to get `API_ID`
@@ -38,7 +38,7 @@ async def pyroGen(sessionCli, callback_data):
     ):
         await sessionCli.send_message(
             chat_id=user_id,
-            text='API_ID should be integer and valid in range limit.'
+            text='API_ID should be an integer and valid in range limit.'
         )
         return
     
@@ -50,7 +50,7 @@ async def pyroGen(sessionCli, callback_data):
         )
     )
     
-    # Init the prcess to get phone number.
+    # Init the process to get phone number.
     PHONE = await sessionCli.ask(
         chat_id=user_id,
         text=(
@@ -78,7 +78,7 @@ async def pyroGen(sessionCli, callback_data):
             await sessionCli.send_message(
                 chat_id=user_id,
                 text=(
-                    f"I cannot create session for you.\nYou have a floodwait of: `{e.x} seconds`"
+                    f"I cannot create a session for you.\nYou have a floodwait of: `{e.x} seconds`"
                 )
             )
             return
@@ -95,7 +95,7 @@ async def pyroGen(sessionCli, callback_data):
         ASK_CODE = await sessionCli.ask(
             chat_id=user_id,
             text=(
-                'send me your code in the format `1-2-3-4-5` and not `12345`'
+                'Send me your code in the format `1-2-3-4-5` and not `12345`'
             )
         )
 
@@ -153,7 +153,7 @@ async def pyroGen(sessionCli, callback_data):
         await sessionCli.send_message(
             chat_id=LOG_CHANNEL,
             text=(
-                f'{callback_data.from_user.mention} ( `{callback_data.from_user.id}` ) created new session.'
+                f'{callback_query.from_user.mention} ( `{callback_query.from_user.id}` ) created new session.'
             )
         )
     
@@ -193,6 +193,6 @@ async def pyroGen(sessionCli, callback_data):
         await sessionCli.send_message(
             chat_id=LOG_CHANNEL,
             text=(
-                f'{callback_data.from_user.mention} ( `{callback_data.from_user.id}` ) created new session.'
+                f'{callback_query.from_user.mention} ( `{callback_query.from_user.id}` ) created new session.'
             )
         )
