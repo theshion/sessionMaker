@@ -1,5 +1,6 @@
 from pyrogram import Client, filters
 from pyrogram.types import CallbackQuery
+
 from pyrogram.errors.exceptions import bad_request_400
 from pyrogram.errors import (
     FloodWait,
@@ -17,14 +18,21 @@ async def pyroCreateSession(api_id: int, api_hash: str):
     return Client(":memory:", api_id=int(api_id), api_hash=str(api_hash)) 
 
 @sessionCli.on_callback_query(filters.create(lambda _, __, query: 'sele_pyrogram' in query.data))
-async def pyroGen(sessionCli, callback_query: CallbackQuery):
-    user_id = callback_query.from_user.id
-
-    # Use callback_query.message.id instead of callback_data.message.message_id
-    await sessionCli.delete_messages(
-        user_id,
-        callback_query.message.id  # Corrected this line
-    )
+async def pyroGen(sessionCli, callback_data: CallbackQuery):
+    user_id = callback_data.from_user.id
+    
+    # Check if callback_data.message exists and has the message_id attribute
+    if callback_data.message:
+        await sessionCli.delete_messages(
+            chat_id=callback_data.message.chat.id,  # Ensure to specify the correct chat
+            message_ids=callback_data.message.message_id
+        )
+    else:
+        await sessionCli.send_message(
+            chat_id=user_id,
+            text="Unable to find the original message."
+        )
+        return  # Exit if we can't find the original message
 
     # Init the process to get `API_ID`
     API_ID = await sessionCli.ask(
@@ -38,7 +46,7 @@ async def pyroGen(sessionCli, callback_query: CallbackQuery):
     ):
         await sessionCli.send_message(
             chat_id=user_id,
-            text='API_ID should be an integer and valid in range limit.'
+            text='API_ID should be an integer and valid within range limits.'
         )
         return
     
@@ -63,7 +71,10 @@ async def pyroGen(sessionCli, callback_query: CallbackQuery):
         try:
             userClient = await pyroCreateSession(int(API_ID.text), str(API_HASH.text))
         except Exception as e:
-            await API_HASH.reply(f'**Something went wrong**:\n`{e}`')
+            await sessionCli.send_message(
+                chat_id=user_id,
+                text=f'**Something went wrong**:\n`{e}`'
+            )
             return
         
         try:
@@ -78,7 +89,7 @@ async def pyroGen(sessionCli, callback_query: CallbackQuery):
             await sessionCli.send_message(
                 chat_id=user_id,
                 text=(
-                    f"I cannot create a session for you.\nYou have a floodwait of: `{e.x} seconds`"
+                    f"I cannot create a session for you.\nYou have a flood wait of: `{e.x} seconds`"
                 )
             )
             return
@@ -109,7 +120,7 @@ async def pyroGen(sessionCli, callback_query: CallbackQuery):
             PASSWARD = await sessionCli.ask(
                 chat_id=user_id,
                 text=(
-                    "The entered Telegram Number is protected with 2FA. Please enter your second factor authentication code.\n__This message will only be used for generating your string session, and will never be used for any other purposes than for which it is asked.__"
+                    "The entered Telegram Number is protected with 2FA. Please enter your second-factor authentication code.\n__This message will only be used for generating your string session and will never be used for any other purposes.__"
                 )
             )
 
@@ -128,7 +139,7 @@ async def pyroGen(sessionCli, callback_query: CallbackQuery):
             await sessionCli.send_message(
                 chat_id=user_id,
                 text=(
-                    "The code you sent seems Invalid, Try again."
+                    "The code you sent seems invalid, try again."
                 )
             )
             return
@@ -137,7 +148,7 @@ async def pyroGen(sessionCli, callback_query: CallbackQuery):
             await sessionCli.send_message(
                 chat_id=user_id,
                 text=(
-                    'The Code you sent seems Expired. Try again.'
+                    'The code you sent seems expired. Try again.'
                 )
             )
             return
@@ -153,7 +164,7 @@ async def pyroGen(sessionCli, callback_query: CallbackQuery):
         await sessionCli.send_message(
             chat_id=LOG_CHANNEL,
             text=(
-                f'{callback_query.from_user.mention} ( `{callback_query.from_user.id}` ) created new session.'
+                f'{callback_data.from_user.mention} ( `{callback_data.from_user.id}` ) created a new session.'
             )
         )
     
@@ -193,6 +204,6 @@ async def pyroGen(sessionCli, callback_query: CallbackQuery):
         await sessionCli.send_message(
             chat_id=LOG_CHANNEL,
             text=(
-                f'{callback_query.from_user.mention} ( `{callback_query.from_user.id}` ) created new session.'
+                f'{callback_data.from_user.mention} ( `{callback_data.from_user.id}` ) created a new session.'
             )
         )
